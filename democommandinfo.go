@@ -1,10 +1,10 @@
 package main
 
 const (
-	FDEMO_NORMAL            int32 = 0
-	FDEMO_USE_ORIGIN2       int32 = (1 << 0)
-	FDEMO_USE_ANGLES2       int32 = (1 << 1)
-	FDEMO_NOINTERP          int32 = (1 << 2)
+	FDEMO_NORMAL            byte = 0
+	FDEMO_USE_ORIGIN2       byte = (1 << 0)
+	FDEMO_USE_ANGLES2       byte = (1 << 1)
+	FDEMO_NOINTERP          byte = (1 << 2)
 	MAX_SPLITSCREEN_CLIENTS int32 = 2
 )
 
@@ -31,20 +31,20 @@ type Vector struct {
 }
 
 func (v *Vector) InitDefault() {
-	q.x = 0.0
-	q.y = 0.0
-	q.z = 0.0
+	v.x = 0.0
+	v.y = 0.0
+	v.z = 0.0
 }
 
 func (v *Vector) Init(x float32, y float32, z float32) {
-	q.x = x
-	q.y = y
-	q.z = z
+	v.x = x
+	v.y = y
+	v.z = z
 }
 
 // Split type
 type Split struct {
-	flags int32
+	flags byte
 
 	viewOrigin      Vector
 	viewAngles      QAngle
@@ -59,13 +59,13 @@ type Split struct {
 func (s *Split) Init() {
 	s.flags = FDEMO_NORMAL
 
-	s.viewOrigin.Init()
-	s.viewAngles.Init()
-	s.localViewAngles.Init()
+	s.viewOrigin.InitDefault()
+	s.viewAngles.InitDefault()
+	s.localViewAngles.InitDefault()
 
-	s.viewOrigin2.Init()
-	s.viewAngles2.Init()
-	s.localViewAngles.Init()
+	s.viewOrigin2.InitDefault()
+	s.viewAngles2.InitDefault()
+	s.localViewAngles.InitDefault()
 }
 
 // Copy the src Split to the current one
@@ -82,24 +82,24 @@ func (s *Split) Copy(src Split) {
 }
 
 func (s *Split) GetViewOrigin() *Vector {
-	if flags & FDEMO_USE_ORIGIN2 {
-		return s.viewOrigin2
+	if (s.flags & FDEMO_USE_ORIGIN2) >= 1 {
+		return &s.viewOrigin2
 	}
-	return s.viewOrigin
+	return &s.viewOrigin
 }
 
 func (s *Split) GetViewAngles() *QAngle {
-	if flags & FDEMO_USE_ANGLES2 {
-		return s.viewAngles2
+	if (s.flags & FDEMO_USE_ANGLES2) >= 1 {
+		return &s.viewAngles2
 	}
-	return s.viewAngles
+	return &s.viewAngles
 }
 
 func (s *Split) GetLocalViewAngles() *QAngle {
-	if flags & FDEMO_USE_ANGLES2 {
-		return s.localViewAngles2
+	if (s.flags & FDEMO_USE_ANGLES2) >= 1 {
+		return &s.localViewAngles2
 	}
-	return s.localViewAngles
+	return &s.localViewAngles
 }
 
 func (s *Split) Reset() {
@@ -114,7 +114,9 @@ type DemoCmdInfo struct {
 }
 
 func (d *DemoCmdInfo) Reset() {
-	for i := 0; i < MAX_SPLITSCREEN_CLIENTS; i++ {
+	var i int32 = 0
+	for i < MAX_SPLITSCREEN_CLIENTS {
 		d.u[i].Reset()
+		i++
 	}
 }
