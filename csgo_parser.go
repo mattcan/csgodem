@@ -17,5 +17,10 @@ func main() {
 	if demo.Open(*filename) {
 		// run the dump routine from DemoFileDump
 		fmt.Println("Demo file is good")
+
+		var cmd, playerSlot uint8
+		var tick int32
+		demo.ReadCmdHeader(&cmd, &tick, &playerSlot)
+
 	}
 }

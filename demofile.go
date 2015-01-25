@@ -16,6 +16,19 @@ const (
 	DEMO_PROTOCOL  int32  = 4
 )
 
+const (
+	dem_signon uint8 = iota + 1
+	dem_packet uint8 =  iota + 1
+	dem_synctick uint8 = iota + 1
+	dem_consolecmd uint8 = iota + 1
+	dem_usercmd uint8 = iota + 1
+	dem_datatables uint8 = iota + 1
+	dem_stop uint8 = iota + 1
+	dem_customdata uint8 = iota + 1
+	dem_stringtables uint8 = iota + 1
+	dem_lastcmd = dem_stringtables
+)
+
 type DemoHeader struct {
 	demoFileStamp   [8]byte
 	demoProtocol    int32
@@ -36,7 +49,7 @@ func (dh *DemoHeader) FileStampString() string {
 }
 
 type DemoFile struct {
-	FileBuffer    string
+	FileBuffer    []byte
 	fileBufferPos int
 
 	FileName   string
@@ -104,7 +117,7 @@ func (d *DemoFile) Open(fileName string) bool {
 		log.Fatal(err)
 		return false
 	}
-	d.FileBuffer = string(tmpFileBuffer)
+	d.FileBuffer = tmpFileBuffer
 
 	d.fileBufferPos = 0
 	d.FileName = fileName
@@ -162,6 +175,16 @@ func byteSliceToInt32(data []byte) int32 {
 	return result
 }
 
+func byteSliceToUInt8(data []byte) uint8 {
+	var result uint8
+	buf := bytes.NewBuffer(data)
+	err := binary.Read(buf, binary.LittleEndian, &result)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func byteSliceToFloat32(data []byte) float32 {
 	bits := binary.LittleEndian.Uint32(data)
 	result := math.Float32frombits(bits)
@@ -172,7 +195,7 @@ func (d *DemoFile) Close() {
 	d.FileName = ""
 
 	d.fileBufferPos = 0
-	d.FileBuffer = ""
+	d.FileBuffer = make([]byte, 1)
 }
 
 func (d *DemoFile) ReadRawData(buffer []byte, length int32) int32 {
@@ -185,7 +208,34 @@ func (d *DemoFile) ReadSequenceInfo(seqNrIn *int32, seqNrOutAck *int32) {
 func (d *DemoFile) ReadCmdInfo(info *DemoCmdInfo) {
 }
 
-func (d *DemoFile) ReadCmdHeader(cmd *string, tick *int32, playerSlot *string) {
+func (d *DemoFile) ReadCmdHeader(cmd *uint8, tick *int32, playerSlot *uint8) {
+	if len(d.FileBuffer) == 0 {
+		return
+	}
+
+	// Read command from position in buffer, move position counter
+	*cmd = byteSliceToUInt8(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + 2)])
+	d.fileBufferPos += 2
+
+	// make sure command isn't zero or less
+	if( *cmd <= 0 ) {
+		log.Fatal("Missing end tag in demo file")
+		*cmd = dem_stop
+		return
+	}
+
+	// make sure command is between 1 and dem_lastcmd
+	if (*cmd < 1) ||  (*cmd > dem_lastcmd ) {
+		return
+	}
+
+	// get tick from new buffer pos, move position counter
+	*tick = byteSliceToInt32(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + 4)])
+	d.fileBufferPos += 4
+
+	// get playerslot, move position counter
+	*playerSlot = byteSliceToUInt8(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + 2)])
+	d.fileBufferPos += 2
 }
 
 /*func (d *DemoFile) ReadDemoHeader() DemoHeader {
