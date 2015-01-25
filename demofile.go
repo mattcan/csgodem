@@ -17,17 +17,25 @@ const (
 )
 
 const (
-	dem_signon uint8 = iota + 1
-	dem_packet uint8 =  iota + 1
-	dem_synctick uint8 = iota + 1
-	dem_consolecmd uint8 = iota + 1
-	dem_usercmd uint8 = iota + 1
-	dem_datatables uint8 = iota + 1
-	dem_stop uint8 = iota + 1
-	dem_customdata uint8 = iota + 1
+	dem_signon       uint8 = iota + 1
+	dem_packet       uint8 = iota + 1
+	dem_synctick     uint8 = iota + 1
+	dem_consolecmd   uint8 = iota + 1
+	dem_usercmd      uint8 = iota + 1
+	dem_datatables   uint8 = iota + 1
+	dem_stop         uint8 = iota + 1
+	dem_customdata   uint8 = iota + 1
 	dem_stringtables uint8 = iota + 1
-	dem_lastcmd = dem_stringtables
+	dem_lastcmd      uint8 = dem_stringtables
 )
+
+const (
+	INT32_SZ   int = 4
+	FLOAT32_SZ int = 4
+	UINT8_SZ   int = 2
+)
+
+type CRC32 uint32
 
 type DemoHeader struct {
 	demoFileStamp   [8]byte
@@ -126,17 +134,17 @@ func (d *DemoFile) Open(fileName string) bool {
 }
 
 func (d *DemoFile) debugHeader() {
-	fmt.Println(string(d.DemoHeader.demoFileStamp[:]))
-	fmt.Println(d.DemoHeader.demoProtocol)
-	fmt.Println(d.DemoHeader.networkProtocol)
-	fmt.Println(string(d.DemoHeader.serverName[:]))
-	fmt.Println(string(d.DemoHeader.clientName[:]))
-	fmt.Println(string(d.DemoHeader.mapName[:]))
-	fmt.Println(string(d.DemoHeader.gameDirectory[:]))
-	fmt.Println(d.DemoHeader.playbackTime)
-	fmt.Println(d.DemoHeader.playbackTicks)
-	fmt.Println(d.DemoHeader.playbackFrames)
-	fmt.Println(d.DemoHeader.signonLength)
+	fmt.Println("Filestamp: ", string(d.DemoHeader.demoFileStamp[:]))
+	fmt.Println("Demo protocol: ", d.DemoHeader.demoProtocol)
+	fmt.Println("Net protocol: ", d.DemoHeader.networkProtocol)
+	fmt.Println("Server name: ", string(d.DemoHeader.serverName[:]))
+	fmt.Println("Client name: ", string(d.DemoHeader.clientName[:]))
+	fmt.Println("Map name: ", string(d.DemoHeader.mapName[:]))
+	fmt.Println("Game dir: ", string(d.DemoHeader.gameDirectory[:]))
+	fmt.Println("Playback time: ", d.DemoHeader.playbackTime)
+	fmt.Println("Playback ticks: ", d.DemoHeader.playbackTicks)
+	fmt.Println("Playback frames: ", d.DemoHeader.playbackFrames)
+	fmt.Println("Signon length: ", d.DemoHeader.signonLength)
 }
 
 func (d *DemoFile) fillDemoHeader(header []byte) {
@@ -198,8 +206,27 @@ func (d *DemoFile) Close() {
 	d.FileBuffer = make([]byte, 1)
 }
 
-func (d *DemoFile) ReadRawData(buffer []byte, length int32) int32 {
-	return 0
+func (d *DemoFile) ReadRawData(buffer *[]byte, length int32) int32 {
+	if len(d.FileBuffer) == 0 {
+		return 0
+	}
+
+	blockSize := byteSliceToInt32(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + INT32_SZ)])
+	d.fileBufferPos += INT32_SZ
+
+	if (buffer != nil) && (length < blockSize) {
+		log.Fatal("Buffer overflow")
+		return -1
+	}
+
+	if buffer != nil {
+		copy(*buffer, d.FileBuffer[d.fileBufferPos:(d.fileBufferPos+int(blockSize))])
+	}
+
+	// advance buffer position whether or not we read into the buffer
+	d.fileBufferPos += int(blockSize)
+
+	return blockSize
 }
 
 func (d *DemoFile) ReadSequenceInfo(seqNrIn *int32, seqNrOutAck *int32) {
@@ -218,14 +245,14 @@ func (d *DemoFile) ReadCmdHeader(cmd *uint8, tick *int32, playerSlot *uint8) {
 	d.fileBufferPos += 2
 
 	// make sure command isn't zero or less
-	if( *cmd <= 0 ) {
-		log.Fatal("Missing end tag in demo file")
+	if *cmd <= 0 {
+		fmt.Println("Missing end tag in demo file: ", *cmd, " tick: ", *tick)
 		*cmd = dem_stop
 		return
 	}
 
 	// make sure command is between 1 and dem_lastcmd
-	if (*cmd < 1) ||  (*cmd > dem_lastcmd ) {
+	if (*cmd < 1) || (*cmd > dem_lastcmd) {
 		return
 	}
 
@@ -236,6 +263,19 @@ func (d *DemoFile) ReadCmdHeader(cmd *uint8, tick *int32, playerSlot *uint8) {
 	// get playerslot, move position counter
 	*playerSlot = byteSliceToUInt8(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + 2)])
 	d.fileBufferPos += 2
+}
+
+func (d *DemoFile) ReadUserCmd(buffer *[]byte, size *int32) int32 {
+	if len(d.FileBuffer) <= 0 {
+		return 0
+	}
+
+	outgoingSequence := byteSliceToInt32(d.FileBuffer[d.fileBufferPos:(d.fileBufferPos + INT32_SZ)])
+	d.fileBufferPos += INT32_SZ
+
+	*size = d.ReadRawData(buffer, *size)
+
+	return outgoingSequence
 }
 
 /*func (d *DemoFile) ReadDemoHeader() DemoHeader {
