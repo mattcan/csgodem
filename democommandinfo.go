@@ -1,10 +1,10 @@
 package main
 
 const (
-	FDEMO_NORMAL            byte = 0
-	FDEMO_USE_ORIGIN2       byte = (1 << 0)
-	FDEMO_USE_ANGLES2       byte = (1 << 1)
-	FDEMO_NOINTERP          byte = (1 << 2)
+	FDEMO_NORMAL            byte  = 0
+	FDEMO_USE_ORIGIN2       byte  = (1 << 0)
+	FDEMO_USE_ANGLES2       byte  = (1 << 1)
+	FDEMO_NOINTERP          byte  = (1 << 2)
 	MAX_SPLITSCREEN_CLIENTS int32 = 2
 )
 
