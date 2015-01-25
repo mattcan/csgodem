@@ -1,4 +1,8 @@
-# Counter-Strike:Global Offensive Demo Parser
+**Project's new home: https://github.com/mattcan/csgodem**
+
+--
+
+## Counter-Strike:Global Offensive Demo Parser
 
 The goals of this project are to:
 
