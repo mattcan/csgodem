@@ -64,7 +64,7 @@ func (d *DemoFile) Open(fileName string) bool {
 
 	// check size
 	// http://stackoverflow.com/questions/23202864/assigning-a-type-uintptr-to-uint64-in-golang
-	hdrSize := (int64)(unsafe.Pointer(unsafe.Sizeof(d.DemoHeader)))
+	hdrSize := (int64)(unsafe.Pointer(unsafe.Sizeof(d.DemoHeader))) + 3 // demoheader is off for some reason
 	if length < hdrSize {
 		log.Fatal("File is too small")
 		return false
@@ -73,7 +73,8 @@ func (d *DemoFile) Open(fileName string) bool {
 	// fread?
 	f.Seek(0, 0) // go back to the beginning of the file
 	reader := bufio.NewReader(f)
-	hdrBytes, err := reader.Peek(int(hdrSize))
+	hdrBytes := make([]byte, hdrSize)
+	_, err = reader.Read(hdrBytes)
 	if err != nil {
 		log.Fatal(err)
 		return false
@@ -95,6 +96,15 @@ func (d *DemoFile) Open(fileName string) bool {
 		log.Fatal("Demo protocol is invalid")
 		return false
 	}
+
+	// read into buffer
+	var tmpFileBuffer []byte = make([]byte, length)
+	_, err = reader.Read(tmpFileBuffer)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+	d.FileBuffer = string(tmpFileBuffer)
 
 	d.fileBufferPos = 0
 	d.FileName = fileName
