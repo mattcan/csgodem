@@ -64,7 +64,7 @@ func (d *DemoFile) Open(fileName string) bool {
 
 	// check size
 	// http://stackoverflow.com/questions/23202864/assigning-a-type-uintptr-to-uint64-in-golang
-	hdrSize := (int64)(unsafe.Pointer(unsafe.Sizeof(d.DemoHeader))) + 3 // demoheader is off for some reason
+	hdrSize := (int64)(unsafe.Pointer(unsafe.Sizeof(d.DemoHeader)))
 	if length < hdrSize {
 		log.Fatal("File is too small")
 		return false
@@ -128,27 +128,28 @@ func (d *DemoFile) debugHeader() {
 
 func (d *DemoFile) fillDemoHeader(header []byte) {
 	var newHeader []byte = header
+	//fmt.Println(newHeader)
 
 	// get the demo files stamp
-	copy(d.DemoHeader.demoFileStamp[:], newHeader[0:7])
+	copy(d.DemoHeader.demoFileStamp[:], newHeader[:7])
 
 	// get demo protocol
 	d.DemoHeader.demoProtocol = byteSliceToInt32(newHeader[8:12])
 
 	// get protocol version
-	d.DemoHeader.networkProtocol = byteSliceToInt32(newHeader[13:17])
+	d.DemoHeader.networkProtocol = byteSliceToInt32(newHeader[12:16])
 
 	// servername, clientname, mapname, directory
-	copy(d.DemoHeader.serverName[:], newHeader[16:275])
-	copy(d.DemoHeader.clientName[:], newHeader[276:535])
-	copy(d.DemoHeader.mapName[:], newHeader[536:795])
-	copy(d.DemoHeader.gameDirectory[:], newHeader[796:1055])
+	copy(d.DemoHeader.serverName[:], newHeader[16:276])
+	copy(d.DemoHeader.clientName[:], newHeader[276:536])
+	copy(d.DemoHeader.mapName[:], newHeader[536:796])
+	copy(d.DemoHeader.gameDirectory[:], newHeader[796:1056])
 
 	// playback
 	d.DemoHeader.playbackTime = byteSliceToFloat32(newHeader[1056:1060])
-	d.DemoHeader.playbackTicks = byteSliceToInt32(newHeader[1061:1065])
-	d.DemoHeader.playbackTicks = byteSliceToInt32(newHeader[1066:1070])
-	d.DemoHeader.signonLength = byteSliceToInt32(newHeader[1071:1075])
+	d.DemoHeader.playbackTicks = byteSliceToInt32(newHeader[1060:1064])
+	d.DemoHeader.playbackTicks = byteSliceToInt32(newHeader[1064:1068])
+	d.DemoHeader.signonLength = byteSliceToInt32(newHeader[1068:])
 }
 
 func byteSliceToInt32(data []byte) int32 {
