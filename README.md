@@ -1,3 +1,5 @@
+*This project is no longer maintained and never actually worked. If you'd like to take this project over, feel free to reach out to [@mattcan](https://github.com/mattcan). To be honest, it might be easier to start from scratch.*
+
 # Counter-Strike:Global Offensive Demo Parser
 
 The goals of this project are to:
